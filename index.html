@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Progressive Web Apps — The Interactive Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
+<style>
+:root{
+  --font-display:'Space Grotesk',sans-serif;
+  --font-mono:'JetBrains Mono',monospace;
+  --accent-rgb:14,165,233; --accent2-rgb:34,197,94;
+}
+:root[data-theme="dark"]{
+  --bg:#0a0d14; --bg-card:#10141c; --bg2:#171c28;
+  --text:#e8ecf4; --text-muted:#8b93a7; --border:rgba(255,255,255,0.09);
+  --accent:#0ea5e9; --accent2:#22c55e; --accent3:#f59e0b; --green:#16a34a;
+}
+:root[data-theme="light"]{
+  --bg:#faf6ef; --bg-card:#f1ebdd; --bg2:#e8dfc9;
+  --text:#241f18; --text-muted:#6b6355; --border:#ddd3bf;
+  --accent:#0078ad; --accent2:#0e8238; --accent3:#9f6400; --green:#098336;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-serif;line-height:1.7;transition:background .2s,color .2s;}
+h1,h2,h3{font-family:var(--font-display);}
+a{color:var(--accent);}
+button{font-family:inherit;cursor:pointer;}
+.visually-hidden{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);}
+
+/* Progress bar */
+#read-bar{position:fixed;top:0;left:0;height:4px;width:0%;background:linear-gradient(90deg,var(--accent),var(--accent2));z-index:100;box-shadow:0 0 8px rgba(var(--accent-rgb),.6);}
+
+/* Topbar */
+#topbar{position:fixed;top:4px;left:0;right:0;height:56px;background:var(--bg-card);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;padding:0 16px;z-index:90;}
+#menu-btn{display:none;background:none;border:none;color:var(--text);font-size:20px;}
+#topbar-title{font-family:var(--font-mono);font-size:13px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#search-wrap{position:relative;flex:1;max-width:260px;}
+#search-input{width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:13px;}
+#search-results{position:absolute;top:38px;left:0;right:0;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;max-height:240px;overflow:auto;display:none;z-index:95;}
+#search-results a{display:block;padding:8px 10px;font-size:13px;color:var(--text);text-decoration:none;border-bottom:1px solid var(--border);}
+#search-results a:hover{background:var(--bg2);}
+.icon-btn{background:none;border:1px solid var(--border);color:var(--text);border-radius:8px;width:38px;height:38px;display:flex;align-items:center;justify-content:center;font-size:16px;min-width:44px;min-height:38px;}
+.icon-btn[aria-pressed="true"]{color:var(--accent3);border-color:var(--accent3);}
+#overflow-menu{position:relative;}
+#overflow-dropdown{position:absolute;right:0;top:44px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;display:none;flex-direction:column;min-width:150px;z-index:95;}
+#overflow-dropdown button{background:none;border:none;color:var(--text);text-align:left;padding:10px 12px;font-size:13px;}
+#overflow-dropdown button:hover{background:var(--bg2);}
+.topbar-actions{display:flex;gap:8px;margin-left:auto;}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--accent2);color:#08130a;padding:10px 18px;border-radius:8px;font-size:13px;display:none;z-index:200;}
+
+/* Sidebar */
+#sidebar{position:fixed;top:60px;left:0;bottom:0;width:280px;background:var(--bg-card);border-right:1px solid var(--border);overflow-y:auto;padding:18px 14px;z-index:80;transition:transform .2s;}
+#sidebar a{display:flex;justify-content:space-between;gap:8px;padding:8px 10px;border-radius:6px;color:var(--text-muted);text-decoration:none;font-size:13px;}
+#sidebar a.active,#sidebar a:hover{background:var(--bg2);color:var(--accent);}
+#sidebar time{font-family:var(--font-mono);font-size:11px;color:var(--text-muted);}
+#backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:75;}
+
+#main{margin-left:280px;padding-top:64px;max-width:760px;padding-left:32px;padding-right:32px;}
+
+/* Hero */
+.hero{text-align:center;padding:70px 0 40px;background:radial-gradient(circle at 50% 0%,rgba(var(--accent-rgb),.15),transparent 60%);}
+.hero .section-label{color:var(--accent2);}
+.hero h1{font-size:clamp(28px,5vw,44px);margin:10px 0;}
+.hero p{color:var(--text-muted);max-width:560px;margin:0 auto;}
+.hero-meta{margin:14px 0 20px;display:flex;justify-content:center;gap:12px;flex-wrap:wrap;}
+.read-time-pill{font-family:var(--font-mono);font-size:11px;color:var(--accent);background:rgba(var(--accent-rgb),.1);border:1px solid rgba(var(--accent-rgb),.3);border-radius:20px;padding:4px 14px;letter-spacing:.06em;text-transform:uppercase;}
+
+section{padding:44px 0;border-top:1px solid var(--border);}
+section:first-of-type{border-top:none;}
+.section-label{font-family:var(--font-mono);font-size:12px;color:var(--accent2);letter-spacing:.08em;text-transform:uppercase;}
+h2{font-size:26px;margin:6px 0 18px;}
+
+/* misc content blocks */
+.callout{background:var(--bg-card);border-left:4px solid var(--accent2);border-radius:0 10px 10px 0;padding:14px 18px;margin:20px 0;font-size:14px;color:var(--text-muted);}
+.pull-quote{font-family:var(--font-display);font-size:20px;font-style:italic;border-left:3px solid var(--accent);padding-left:16px;margin:26px 0;}
+.stat-card{display:inline-block;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:14px 20px;margin:10px 8px 10px 0;}
+.stat-card b{display:block;font-size:24px;color:var(--accent);font-family:var(--font-display);}
+
+/* accordion (section 03) */
+.acc-item{border:1px solid var(--border);border-radius:10px;margin-bottom:10px;overflow:hidden;}
+.acc-head{width:100%;text-align:left;background:var(--bg-card);color:var(--text);padding:14px 16px;border:none;display:flex;justify-content:space-between;font-size:15px;font-weight:600;}
+.acc-body{padding:0 16px;max-height:0;overflow:hidden;transition:max-height .25s ease;font-size:14px;color:var(--text-muted);}
+.acc-item.open .acc-body{padding:0 16px 16px;max-height:400px;}
+
+/* section 04 cards */
+.mech-row{display:flex;flex-wrap:wrap;gap:10px;align-items:stretch;margin:20px 0;}
+.mech-card{flex:1;min-width:140px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:14px;font-size:13px;}
+.mech-arrow{align-self:center;color:var(--accent3);font-size:20px;}
+.chart-wrap{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:16px;margin:20px 0;height:260px;}
+
+/* section 05 action grid */
+.action-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:20px 0;}
+.action-card{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:14px;}
+.action-card .emoji{font-size:20px;}
+.action-card .tag{display:inline-block;margin-top:8px;font-family:var(--font-mono);font-size:10px;color:var(--accent2);background:rgba(var(--accent2-rgb),.12);padding:2px 8px;border-radius:10px;}
+
+/* section 06 contrast */
+.contrast-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:20px 0;}
+.contrast-col{border-radius:10px;padding:14px;border-top:3px solid;}
+.contrast-col.good{background:rgba(22,163,74,.08);border-color:var(--green);}
+.contrast-col.bad{background:rgba(var(--accent-rgb),.06);border-color:var(--accent);}
+.contrast-col li{margin-bottom:8px;font-size:14px;}
+
+/* section 07 scenes */
+.scene-block{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:14px;}
+.scene-block.wrong{border-left:4px solid var(--accent);}
+.scene-block.right{border-left:4px solid var(--green);}
+.dialogue-line{margin:8px 0;font-size:14px;}
+.speaker{font-family:var(--font-mono);color:var(--accent2);font-weight:600;}
+
+/* section 08 story cards */
+.story-card{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px;}
+.story-card h3{margin:6px 0;font-size:17px;}
+.story-toggle{background:none;border:1px solid var(--border);color:var(--accent);border-radius:6px;padding:6px 12px;font-size:13px;margin-top:8px;}
+.story-body{max-height:0;overflow:hidden;font-size:14px;color:var(--text-muted);transition:max-height .25s ease;}
+.story-card.open .story-body{max-height:600px;margin-top:10px;}
+
+/* micro check */
+.micro-check{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-top:22px;font-size:14px;}
+.micro-check .mc-opts{display:flex;flex-direction:column;gap:6px;margin-top:8px;}
+.micro-check button.opt{text-align:left;background:var(--bg-card);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:6px;font-size:13px;min-height:44px;}
+.micro-check button.opt.correct{border-color:var(--green);color:var(--green);}
+.micro-check button.opt.incorrect{border-color:var(--accent);color:var(--accent);}
+.mc-feedback{margin-top:8px;font-size:13px;color:var(--text-muted);}
+
+/* summary banner */
+.summary-banner{background:linear-gradient(135deg,rgba(var(--accent-rgb),.15),rgba(var(--accent2-rgb),.1));border:1px solid var(--border);border-radius:14px;padding:30px;text-align:center;}
+.summary-banner p{font-family:var(--font-display);font-size:22px;}
+
+/* quiz */
+#quiz-card{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:20px;}
+#quiz-progress{font-family:var(--font-mono);font-size:12px;color:var(--text-muted);display:flex;justify-content:space-between;margin-bottom:10px;}
+.quiz-opts button.opt{display:block;width:100%;text-align:left;background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:8px;margin-bottom:8px;min-height:44px;}
+.quiz-opts button.opt.selected{border-color:var(--accent);}
+.quiz-nav{display:flex;justify-content:space-between;margin-top:14px;}
+.btn{background:var(--accent);color:#04121b;border:none;border-radius:8px;padding:10px 18px;font-size:13px;font-weight:600;min-height:44px;}
+.btn.secondary{background:none;border:1px solid var(--border);color:var(--text);}
+.btn:disabled{opacity:.4;cursor:not-allowed;}
+.export-row{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;}
+
+/* disclaimer + heart */
+.disclaimer-card{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:18px;font-size:13px;color:var(--text-muted);}
+.heart-closing{text-align:center;padding:30px 0;}
+#heart-big{font-size:34px;background:none;border:none;color:var(--text-muted);}
+#heart-big[aria-pressed="true"]{color:#e11d48;}
+
+#back-top{position:fixed;bottom:24px;right:24px;background:var(--accent);color:#04121b;border:none;border-radius:50%;width:44px;height:44px;display:none;z-index:90;}
+
+@media (prefers-reduced-motion:reduce){*{transition:none !important;animation:none !important;}}
+@media print{
+  #topbar,#sidebar,#back-top,#toast{display:none !important;}
+  #main{margin-left:0;padding-top:0;}
+  html,body{background:#fff;color:#000;}
+  #read-bar{display:none;}
+}
+@media (max-width:860px){
+  #menu-btn{display:block;}
+  #sidebar{transform:translateX(-100%);}
+  #sidebar.open{transform:translateX(0);}
+  #backdrop.show{display:block;}
+  #main{margin-left:0;}
+  .listen-btn,.print-btn,.share-btn{display:none;}
+  #overflow-menu{display:block;}
+  .action-grid,.contrast-row{grid-template-columns:1fr;}
+}
+@media (min-width:861px){#overflow-menu{display:none;}}
+@media (max-width:480px){#topbar-title{display:none;}}
+</style>
+</head>
+<body>
+<div id="read-bar"></div>
+<header id="topbar">
+  <button id="menu-btn" aria-label="Open sidebar" aria-expanded="false">☰</button>
+  <span id="topbar-title">Progressive Web Apps</span>
+  <div id="search-wrap">
+    <input id="search-input" type="text" placeholder="Search sections…" aria-label="Search sections">
+    <div id="search-results" role="listbox"></div>
+  </div>
+  <div class="topbar-actions">
+    <button id="heart-btn" class="icon-btn" aria-label="Favorite this guide" aria-pressed="false">♡</button>
+    <button id="theme-btn" class="icon-btn" aria-label="Toggle light and dark theme" aria-pressed="false">🌙</button>
+    <button id="listen-btn" class="icon-btn listen-btn" aria-label="Read guide aloud" aria-pressed="false">🔊</button>
+    <button id="print-btn" class="icon-btn print-btn" aria-label="Print or save as PDF">🖨</button>
+    <button id="share-btn" class="icon-btn share-btn" aria-label="Share this guide">⇪</button>
+    <div id="overflow-menu">
+      <button id="overflow-btn" class="icon-btn" aria-label="More actions" aria-expanded="false">⋯</button>
+      <div id="overflow-dropdown">
+        <button id="of-listen">🔊 Listen Aloud</button>
+        <button id="of-print">🖨 Print / Save PDF</button>
+        <button id="of-share">⇪ Share</button>
+      </div>
+    </div>
+  </div>
+</header>
+<div id="backdrop"></div>
+
+<nav id="sidebar" aria-label="Section navigation"></nav>
+
+<main id="main">
+  <section class="hero" aria-labelledby="hero-h">
+    <div class="section-label">Interactive Guide</div>
+    <h1 id="hero-h">Progressive Web Apps</h1>
+    <p>The lightest way to turn a website into an installable, offline-capable app — no app store required.</p>
+    <div class="hero-meta"><span class="read-time-pill" id="total-read-time">⏱ Calculating…</span></div>
+  </section>
+
+  <div id="pretest-holder"></div>
+
+  <section id="section-01" aria-labelledby="s1-h">
+    <div class="section-label">Section 01</div>
+    <h2 id="s1-h">Why This Matters</h2>
+    <p>Most people abandon an app install before it finishes. Native apps ask for a store visit, a download, and storage space — and a huge share of visitors never get past that wall. A Progressive Web App (PWA) removes the wall entirely: the "app" is just the website the visitor is already looking at, upgraded to behave like one.</p>
+    <div class="pull-quote">The best app is the one a person never had to decide to install.</div>
+    <p>That single shift — install friction near zero — is why companies from coffee chains to social networks have used PWAs to reach people who would never have downloaded their native app in the first place.</p>
+    <div class="stat-card"><b>0 steps</b>store visit required</div>
+    <div class="stat-card"><b>1 codebase</b>runs on every device</div>
+    <div id="mc-01"></div>
+  </section>
+
+  <section id="section-02" aria-labelledby="s2-h">
+    <div class="section-label">Section 02</div>
+    <h2 id="s2-h">What Is a PWA? (Definition)</h2>
+    <p>A Progressive Web App is a regular website that has added two specific files — a Web App Manifest and a Service Worker — so a browser can treat it as installable and capable of working offline. Nothing about the website's core code changes; it's an enhancement layered on top.</p>
+    <p>Think of it like adding a doorbell and a spare key to a house that already exists — the house (your website) doesn't get rebuilt, it just becomes something a visitor can "move into" (install) and still use even when the power (internet) briefly goes out.</p>
+    <div class="callout">Common misconception: a PWA is not a different kind of app you build from scratch — it's a checklist your existing website passes.</div>
+    <div id="mc-02"></div>
+  </section>
+
+  <section id="section-03" aria-labelledby="s3-h">
+    <div class="section-label">Section 03</div>
+    <h2 id="s3-h">The Core Framework</h2>
+    <p>Five pieces work together to make a site installable and reliable offline. Miss one and the install prompt simply never appears.</p>
+    <div id="accordion-03"></div>
+    <div id="mc-03"></div>
+  </section>
+
+  <section id="section-04" aria-labelledby="s4-h">
+    <div class="section-label">Section 04</div>
+    <h2 id="s4-h">How It Works (Deep Mechanics)</h2>
+    <p>Under the hood, the browser is watching for a specific sequence of events before it decides your site qualifies as installable — and once installed, a background script quietly intercepts network requests so the app still opens with no connection.</p>
+    <div class="mech-row">
+      <div class="mech-card"><b>1. Page loads over HTTPS</b><br>Browser checks the manifest link tag.</div>
+      <div class="mech-arrow">→</div>
+      <div class="mech-card"><b>2. Service worker registers</b><br>It installs in the background and caches the app shell.</div>
+      <div class="mech-arrow">→</div>
+      <div class="mech-card"><b>3. beforeinstallprompt fires</b><br>Chrome signals the site meets install criteria.</div>
+      <div class="mech-arrow">→</div>
+      <div class="mech-card"><b>4. Fetch events intercepted</b><br>Future requests are served from cache first, network second.</div>
+    </div>
+    <p>That fourth step is what makes offline mode possible: the service worker sits between your app and the network like a security guard, deciding case by case whether to hand back a cached response or go fetch a fresh one.</p>
+    <div class="chart-wrap"><canvas id="chart-setup" role="img" aria-label="Bar chart comparing typical setup time in hours across app types"></canvas></div>
+    <div id="mc-04"></div>
+  </section>
+
+  <section id="section-05" aria-labelledby="s5-h">
+    <div class="section-label">Section 05</div>
+    <h2 id="s5-h">How to Apply It</h2>
+    <p>Turning an existing site into a PWA is a short, well-defined checklist rather than a rebuild. Here's the order that avoids the most common dead ends.</p>
+    <div class="action-grid" id="action-grid-05"></div>
+    <div id="mc-05"></div>
+  </section>
+
+  <section id="section-06" aria-labelledby="s6-h">
+    <div class="section-label">Section 06</div>
+    <h2 id="s6-h">Benefits &amp; Consequences</h2>
+    <p>A PWA trades one set of costs for another — it's worth knowing both sides before committing a project to it.</p>
+    <div class="contrast-row">
+      <div class="contrast-col good"><b>Benefits</b>
+        <ul>
+          <li>Installable straight from a link — no store review or approval delay</li>
+          <li>Works offline once the app shell is cached</li>
+          <li>One codebase serves phone, tablet, and desktop</li>
+          <li>Updates land instantly — no re-download for users</li>
+        </ul>
+      </div>
+      <div class="contrast-col bad"><b>Consequences</b>
+        <ul>
+          <li>Weaker access to deep hardware (Bluetooth, background tasks)</li>
+          <li>No app store listing by default — discovery relies on a shared link</li>
+          <li>iOS has historically lagged Android in PWA feature support</li>
+          <li>Selling it on a store still needs a thin native wrapper</li>
+        </ul>
+      </div>
+    </div>
+    <div class="chart-wrap"><canvas id="chart-size" role="img" aria-label="Bar chart comparing typical install size in megabytes across app types"></canvas></div>
+    <div id="mc-06"></div>
+  </section>
+
+  <section id="section-07" aria-labelledby="s7-h">
+    <div class="section-label">Section 07</div>
+    <h2 id="s7-h">Narrative Examples</h2>
+    <div id="scenes-07"></div>
+    <div id="mc-07"></div>
+  </section>
+
+  <section id="section-08" aria-labelledby="s8-h">
+    <div class="section-label">Section 08</div>
+    <h2 id="s8-h">Real-World Examples</h2>
+    <div id="stories-08"></div>
+    <div id="mc-08"></div>
+  </section>
+
+  <section id="section-09" aria-labelledby="s9-h">
+    <div class="section-label">Section 09</div>
+    <h2 id="s9-h">One-Sentence Summary</h2>
+    <div class="summary-banner">
+      <p>A PWA turns an ordinary website into an installable, offline-ready app by adding just a manifest and a service worker — trading some hardware access and app-store visibility for near-zero install friction and instant updates.</p>
+    </div>
+  </section>
+
+  <section id="section-10" aria-labelledby="s10-h">
+    <div class="section-label">Section 10</div>
+    <h2 id="s10-h">15-Question Quiz</h2>
+    <div id="quiz-card"></div>
+    <div class="export-row">
+      <button class="btn secondary" id="export-blank">Export Blank Exam (.docx)</button>
+      <button class="btn secondary" id="export-results" disabled>Export My Results (.docx)</button>
+    </div>
+    <div class="export-row">
+      <button class="btn secondary" id="retake-quiz">Retake Quiz</button>
+      <button class="btn secondary" id="reset-progress">Reset Progress</button>
+    </div>
+  </section>
+
+  <section id="section-11" aria-labelledby="s11-h">
+    <div class="section-label">Section 11</div>
+    <h2 id="s11-h">Disclaimer &amp; Sources</h2>
+    <div class="disclaimer-card">
+      This guide is educational and reflects general PWA behavior across modern browsers as of 2026; individual browser support varies and changes over time. Company statistics cited in Section 08 are drawn from published case-study write-ups from Twitter (X) Engineering, Google Developers case studies, and third-party case-study aggregators, and are approximate figures reported by those sources rather than independently re-measured by this guide.
+    </div>
+    <div class="heart-closing">
+      <p>Found this useful?</p>
+      <button id="heart-big" aria-label="Favorite this guide" aria-pressed="false">♡</button>
+    </div>
+  </section>
+</main>
+
+<button id="back-top" aria-label="Back to top">↑</button>
+<div id="toast" role="status"></div>
+
+<script>
+try{
+/* ---------- storage helpers ---------- */
+const GUIDE_ID = (location.pathname || 'progressive-web-app-guide').replace(/[^a-z0-9]/gi,'_');
+function sGet(k,d){ try{ const v=localStorage.getItem(GUIDE_ID+':'+k); return v===null?d:JSON.parse(v);}catch(e){return d;} }
+function sSet(k,v){ try{ localStorage.setItem(GUIDE_ID+':'+k, JSON.stringify(v)); }catch(e){} }
+function sDel(k){ try{ localStorage.removeItem(GUIDE_ID+':'+k);}catch(e){} }
+
+/* ---------- theme ---------- */
+const themeBtn=document.getElementById('theme-btn');
+function applyTheme(t){
+  document.documentElement.setAttribute('data-theme',t);
+  themeBtn.setAttribute('aria-pressed', t==='light'?'true':'false');
+  themeBtn.textContent = t==='light' ? '☀' : '🌙';
+}
+let savedTheme = sGet('guide_theme_v1', null);
+if(!savedTheme){ savedTheme = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'; }
+applyTheme(savedTheme);
+themeBtn.addEventListener('click',()=>{
+  const cur = document.documentElement.getAttribute('data-theme');
+  const next = cur==='dark' ? 'light':'dark';
+  applyTheme(next); sSet('guide_theme_v1', next);
+});
+
+/* ---------- reading progress bar ---------- */
+const readBar=document.getElementById('read-bar');
+window.addEventListener('scroll',()=>{
+  const h=document.documentElement;
+  const pct=(h.scrollTop)/(h.scrollHeight-h.clientHeight)*100;
+  readBar.style.width=pct+'%';
+  document.getElementById('back-top').style.display = h.scrollTop>400 ? 'block':'none';
+});
+
+/* ---------- sidebar build + scrollspy ---------- */
+const SECTIONS=[
+ {id:'section-01',label:'01 · Why This Matters',min:2},
+ {id:'section-02',label:'02 · What Is a PWA?',min:2},
+ {id:'section-03',label:'03 · Core Framework',min:2},
+ {id:'section-04',label:'04 · Deep Mechanics',min:3},
+ {id:'section-05',label:'05 · How to Apply',min:2},
+ {id:'section-06',label:'06 · Benefits & Consequences',min:2},
+ {id:'section-07',label:'07 · Narrative Examples',min:2},
+ {id:'section-08',label:'08 · Real-World Examples',min:3},
+ {id:'section-09',label:'09 · One-Sentence Summary',min:1},
+ {id:'section-10',label:'10 · Quiz',min:4},
+ {id:'section-11',label:'11 · Disclaimer & Sources',min:1},
+];
+const sidebar=document.getElementById('sidebar');
+let totalMin=0;
+SECTIONS.forEach(s=>{
+  totalMin+=s.min;
+  const a=document.createElement('a');
+  a.href='#'+s.id; a.dataset.target=s.id;
+  a.innerHTML='<span>'+s.label+'</span><time>'+s.min+' min</time>';
+  sidebar.appendChild(a);
+});
+document.getElementById('total-read-time').textContent='⏱ ~'+totalMin+' min read';
+
+const navLinks=[...sidebar.querySelectorAll('a')];
+const observer=new IntersectionObserver((entries)=>{
+  entries.forEach(en=>{
+    if(en.isIntersecting){
+      navLinks.forEach(l=>l.classList.remove('active'));
+      const link=sidebar.querySelector('a[data-target="'+en.target.id+'"]');
+      if(link){ link.classList.add('active'); document.getElementById('topbar-title').textContent=link.textContent; }
+    }
+  });
+},{rootMargin:'-40% 0px -50% 0px'});
+SECTIONS.forEach(s=>{ const el=document.getElementById(s.id); if(el) observer.observe(el); });
+
+/* mobile sidebar drawer */
+const menuBtn=document.getElementById('menu-btn'), backdrop=document.getElementById('backdrop');
+function openDrawer(o){ sidebar.classList.toggle('open',o); backdrop.classList.toggle('show',o); menuBtn.setAttribute('aria-expanded',o?'true':'false'); }
+menuBtn.addEventListener('click',()=>openDrawer(!sidebar.classList.contains('open')));
+backdrop.addEventListener('click',()=>openDrawer(false));
+document.getElementById('back-top').addEventListener('click',()=>window.scrollTo({top:0,behavior:'smooth'}));
+
+/* ---------- search ---------- */
+const searchInput=document.getElementById('search-input'), searchResults=document.getElementById('search-results');
+searchInput.addEventListener('input',()=>{
+  const q=searchInput.value.trim().toLowerCase();
+  searchResults.innerHTML='';
+  if(!q){ searchResults.style.display='none'; return; }
+  const matches=SECTIONS.filter(s=>s.label.toLowerCase().includes(q)).slice(0,8);
+  if(!matches.length){ searchResults.style.display='none'; return; }
+  matches.forEach(m=>{
+    const a=document.createElement('a'); a.href='#'+m.id; a.textContent=m.label;
+    a.addEventListener('click',()=>{searchResults.style.display='none'; searchInput.value='';});
+    searchResults.appendChild(a);
+  });
+  searchResults.style.display='block';
+});
+document.addEventListener('click',(e)=>{ if(!document.getElementById('search-wrap').contains(e.target)) searchResults.style.display='none'; });
+
+/* ---------- heart toggle (local only — no Supabase project configured for this file) ---------- */
+const heartBtn=document.getElementById('heart-btn'), heartBig=document.getElementById('heart-big');
+function setHeart(on){
+  [heartBtn,heartBig].forEach(b=>{ b.setAttribute('aria-pressed', on?'true':'false'); b.textContent= on?'♥':'♡'; });
+  sSet('hearted', on);
+}
+setHeart(sGet('hearted', false));
+[heartBtn,heartBig].forEach(b=>b.addEventListener('click',()=>setHeart(b.getAttribute('aria-pressed')!=='true')));
+
+/* ---------- listen aloud ---------- */
+const listenBtns=[document.getElementById('listen-btn'), document.getElementById('of-listen')];
+if(!('speechSynthesis' in window)){ document.getElementById('listen-btn').style.display='none'; document.getElementById('of-listen').style.display='none'; }
+let speaking=false;
+function toggleListen(){
+  if(speaking){ speechSynthesis.cancel(); speaking=false; document.getElementById('listen-btn').setAttribute('aria-pressed','false'); return; }
+  const text=document.getElementById('main').innerText;
+  const utter=new SpeechSynthesisUtterance(text.slice(0,6000));
+  speechSynthesis.speak(utter); speaking=true; document.getElementById('listen-btn').setAttribute('aria-pressed','true');
+  utter.onend=()=>{speaking=false; document.getElementById('listen-btn').setAttribute('aria-pressed','false');};
+}
+document.getElementById('listen-btn').addEventListener('click',toggleListen);
+document.getElementById('of-listen').addEventListener('click',toggleListen);
+
+/* ---------- print ---------- */
+document.getElementById('print-btn').addEventListener('click',()=>window.print());
+document.getElementById('of-print').addEventListener('click',()=>window.print());
+
+/* ---------- share ---------- */
+function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.style.display='block'; setTimeout(()=>t.style.display='none',2200); }
+async function doShare(){
+  const data={title:'Progressive Web Apps — Interactive Guide', text:'Learn how PWAs turn websites into installable, offline apps.', url:location.href};
+  if(navigator.share){ try{ await navigator.share(data);}catch(e){} }
+  else{ try{ await navigator.clipboard.writeText(data.title+' — '+data.text+' '+data.url); showToast('Link copied to clipboard'); }catch(e){ showToast('Copy failed — share manually'); } }
+}
+document.getElementById('share-btn').addEventListener('click',doShare);
+document.getElementById('of-share').addEventListener('click',doShare);
+
+/* ---------- overflow menu ---------- */
+const ofBtn=document.getElementById('overflow-btn'), ofDrop=document.getElementById('overflow-dropdown');
+ofBtn.addEventListener('click',()=>{
+  const open=ofDrop.style.display==='flex';
+  ofDrop.style.display= open?'none':'flex';
+  ofBtn.setAttribute('aria-expanded', open?'false':'true');
+});
+document.addEventListener('click',(e)=>{ if(!document.getElementById('overflow-menu').contains(e.target)) { ofDrop.style.display='none'; ofBtn.setAttribute('aria-expanded','false'); } });
+
+/* ---------- accordion (section 03) ---------- */
+const FRAMEWORK=[
+ {t:'Web App Manifest',b:'A small JSON file listing the app name, icons, colors, and start URL — it\'s what tells the browser "this is installable" and how it should look once installed.'},
+ {t:'Service Worker',b:'A JavaScript file that runs in the background, separate from the page, intercepting network requests so cached content can be served instantly or offline.'},
+ {t:'HTTPS',b:'Service workers only register on secure connections — this protects users since the worker can intercept every request the page makes.'},
+ {t:'App Shell',b:'The minimal HTML/CSS/JS needed to render the basic layout instantly from cache, before any fresh content loads over the network.'},
+ {t:'Responsive Design',b:'The same interface must work from a small phone to a large monitor, since a PWA has no separate "tablet build."'},
+];
+const acc03=document.getElementById('accordion-03');
+FRAMEWORK.forEach((f,i)=>{
+  const item=document.createElement('div'); item.className='acc-item';
+  item.innerHTML='<button class="acc-head" aria-expanded="false"><span>'+(i+1)+'. '+f.t+'</span><span>+</span></button><div class="acc-body">'+f.b+'</div>';
+  const head=item.querySelector('.acc-head');
+  head.addEventListener('click',()=>{
+    const open=item.classList.toggle('open');
+    head.setAttribute('aria-expanded', open?'true':'false');
+  });
+  acc03.appendChild(item);
+});
+
+/* ---------- action grid (section 05) ---------- */
+const ACTIONS=[
+ {e:'📄',t:'Write a manifest.json',b:'Define name, icons (192px & 512px), theme color, and start_url. Link it in the page head.',tag:'→ Manifest'},
+ {e:'⚙️',t:'Register a service worker',b:'One line of JS (navigator.serviceWorker.register) tells the browser to install your background script.',tag:'→ Service Worker'},
+ {e:'🔒',t:'Serve everything over HTTPS',b:'Free certificates from most hosts make this a non-issue today, but it is non-negotiable for installability.',tag:'→ HTTPS'},
+ {e:'🗄️',t:'Cache the app shell',b:'Inside the service worker\'s install event, pre-cache the core HTML, CSS, and JS so the shell loads instantly, even offline.',tag:'→ App Shell'},
+ {e:'📱',t:'Confirm responsive layout',b:'Test the same build at phone and desktop widths before calling it done — there is no separate tablet version to fall back on.',tag:'→ Responsive Design'},
+ {e:'✅',t:'Audit with Lighthouse',b:'Chrome\'s built-in Lighthouse tool scores installability and flags exactly which requirement is missing.',tag:'→ QA Step'},
+];
+const grid05=document.getElementById('action-grid-05');
+ACTIONS.forEach(a=>{
+  const c=document.createElement('div'); c.className='action-card';
+  c.innerHTML='<div class="emoji">'+a.e+'</div><b>'+a.t+'</b><p>'+a.b+'</p><span class="tag">'+a.tag+'</span>';
+  grid05.appendChild(c);
+});
+
+/* ---------- narrative scenes (section 07) ---------- */
+const SCENES=[
+ {title:'Choosing an install method',
+  wrong:[['Priya','Let\'s just build a full native Android app for the internal reporting tool.'],['Dev Lead','That\'s six weeks and a second build for iOS later. For an internal tool ten people use?']],
+  right:[['Priya','What if we ship it as a PWA instead — same code, installable from a link?'],['Dev Lead','That gets us an icon on their home screen in an afternoon. Let\'s do that first.']]},
+ {title:'Forgetting the basics',
+  wrong:[['Marco','I added the manifest but Chrome still won\'t show the install prompt.'],['Reviewer','Did you register a service worker? The manifest alone isn\'t enough.']],
+  right:[['Marco','Registered the service worker and I\'m serving over HTTPS now.'],['Reviewer','Run Lighthouse — it\'ll confirm every installability box is checked.']]},
+ {title:'Play Store distribution',
+  wrong:[['Ana','Client wants us in the Play Store, so I guess we rebuild natively.'],['Ana','That doubles our maintenance for one distribution channel.']],
+  right:[['Ana','Actually, a Trusted Web Activity wraps our existing PWA for the Play Store.'],['Ana','Same codebase, store listing, and we still ship web updates instantly.']]},
+];
+const scenesWrap=document.getElementById('scenes-07');
+SCENES.forEach(s=>{
+  const wrong=s.wrong.map(l=>'<div class="dialogue-line"><span class="speaker">'+l[0]+':</span> '+l[1]+'</div>').join('');
+  const right=s.right.map(l=>'<div class="dialogue-line"><span class="speaker">'+l[0]+':</span> '+l[1]+'</div>').join('');
+  const html='<div class="story-scene"><p><b>'+s.title+'</b></p>'+
+    '<div class="scene-block wrong"><b>Wrong way</b>'+wrong+'</div>'+
+    '<div class="scene-block right"><b>Right way</b>'+right+'</div></div>';
+  scenesWrap.insertAdjacentHTML('beforeend', html);
+});
+
+/* ---------- real-world examples (section 08) — figures per public case-study write-ups, Section 11 sources */
+const STORIES=[
+ {e:'☕',name:'Starbucks',trait:'Reach over polish',hook:'Their PWA is a fraction of the size of the native app — and it still takes real orders.',
+  body:'Starbucks built a PWA roughly 99.84% smaller than its iOS app, so customers on older phones or limited storage could still browse the menu, customize a drink, and add it to cart — fully offline, syncing the order once connection returned. The PWA went on to double daily active users and reach order rates comparable to the native app, proving a lighter experience did not mean a lesser one.'},
+ {e:'🐦',name:'Twitter Lite',trait:'Built for weak connections',hook:'Designed for emerging markets first, it grew engagement everywhere.',
+  body:'Twitter Lite launched as a PWA aimed at users on slow or unreliable mobile networks, using placeholders that only loaded images and video on tap to save data. After launch, Twitter reported a 75% increase in tweets sent, a 65% increase in pages per session, and a 20% drop in bounce rate — evidence that a faster, lighter experience changed how people actually used the product, not just how fast it loaded.'},
+ {e:'📌',name:'Pinterest',trait:'Slow mobile web, rebuilt',hook:'A sluggish mobile site became the company\'s fastest-growing surface.',
+  body:'Pinterest\'s mobile web experience was slow and converted poorly before its PWA rebuild. Afterward, the company reported weekly active users on mobile web rising roughly 103% within a year, alongside sharp increases in new signups and on-platform engagement — a reminder that for content-heavy sites, speed and installability can move core growth metrics, not just satisfaction scores.'},
+];
+const stories08=document.getElementById('stories-08');
+STORIES.forEach(s=>{
+  const card=document.createElement('div'); card.className='story-card';
+  card.innerHTML='<div style="font-size:26px">'+s.e+'</div><h3>'+s.name+' <span style="font-size:12px;color:var(--accent2);font-family:var(--font-mono)">'+s.trait+'</span></h3><p>'+s.hook+'</p><button class="story-toggle" aria-expanded="false">Read their story →</button><div class="story-body"><p>'+s.body+'</p></div>';
+  const btn=card.querySelector('.story-toggle');
+  btn.addEventListener('click',()=>{
+    const open=card.classList.toggle('open');
+    btn.setAttribute('aria-expanded', open?'true':'false');
+    btn.textContent = open ? 'Show less' : 'Read their story →';
+  });
+  stories08.appendChild(card);
+});
+
+/* ---------- charts ---------- */
+if(window.Chart){
+  new Chart(document.getElementById('chart-setup'),{type:'bar',data:{labels:['Website','PWA','Electron App','Native (Android Studio)'],
+    datasets:[{label:'Typical setup time to first install (hrs)',data:[0,2,8,20],backgroundColor:['#64748b','#0ea5e9','#f59e0b','#22c55e']}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}});
+  new Chart(document.getElementById('chart-size'),{type:'bar',data:{labels:['PWA (cached shell)','Native Android APK','Electron Desktop App'],
+    datasets:[{label:'Typical install size (MB)',data:[3,45,150],backgroundColor:['#0ea5e9','#22c55e','#f59e0b']}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}});
+}
+
+/* ---------- quiz + micro-checks question bank ---------- */
+const BANK=[
+ {id:'q1',q:'What two things must a website add to become a PWA?',opts:['A native SDK and an app store account','A Web App Manifest and a Service Worker','A database and a login system','A mobile-only redesign'],c:1,ex:'A manifest and a service worker are the two required additions — everything else about the site stays the same.'},
+ {id:'q2',q:'What does the Web App Manifest primarily control?',opts:['Network caching rules','App name, icons, colors, and install behavior','Database queries','Server-side rendering'],c:1,ex:'The manifest is metadata describing how the installed app should look and launch.'},
+ {id:'q3',q:'What does a Service Worker mainly enable?',opts:['Faster typing in forms','Offline access via request interception and caching','Automatic translation','Better search engine ranking'],c:1,ex:'The service worker intercepts network requests, letting cached responses stand in when offline.'},
+ {id:'q4',q:'Why must a PWA be served over HTTPS?',opts:['It is required for cheaper hosting','Service workers can intercept every request, so a secure origin is required','It makes fonts load faster','It is only a suggestion, not a requirement'],c:1,ex:'Because the service worker sits between the browser and every request, browsers require HTTPS before allowing one to register.'},
+ {id:'q5',q:'Which event signals the browser thinks a site meets install criteria?',opts:['onload','beforeinstallprompt','DOMContentLoaded','fetch'],c:1,ex:'beforeinstallprompt fires once the manifest, service worker, and HTTPS checks all pass.'},
+ {id:'q6',q:'What commonly triggers a browser\'s install prompt?',opts:['A pop-up ad','Meeting the manifest + service worker + HTTPS installability criteria','Visiting the site twice','Clearing cookies'],c:1,ex:'The prompt only appears once the installability checklist is satisfied.'},
+ {id:'q7',q:'Which caching approach serves cached content first, network second?',opts:['Network-first','Cache-first with network fallback','Random selection','No caching at all'],c:1,ex:'Cache-first is the common app-shell strategy that keeps a PWA fast and available offline.'},
+ {id:'q8',q:'What has historically limited PWA support on iOS?',opts:['iOS blocks HTTPS entirely','Apple has been slower to add full PWA feature parity than Android','iPhones cannot run JavaScript','Safari does not support any web pages'],c:1,ex:'iOS PWA support has improved over time but has generally trailed Android/Chrome feature-for-feature.'},
+ {id:'q9',q:'How can a PWA be listed in the Google Play Store despite being a website?',opts:['It cannot be listed at all','Wrapped in a Trusted Web Activity (TWA)','By converting it to Java','By removing the service worker'],c:1,ex:'A Trusted Web Activity is a thin native wrapper that lets an existing PWA appear as a Play Store listing.'},
+ {id:'q10',q:'Roughly how much smaller was Starbucks\' PWA compared to its native iOS app?',opts:['About 10% smaller','About 50% smaller','About 99.84% smaller','It was larger'],c:2,ex:'Public case studies report the Starbucks PWA at roughly 99.84% smaller than the iOS app.'},
+ {id:'q11',q:'What was Twitter Lite primarily designed to improve?',opts:['Video editing tools','Performance and data use on slow connections','Advertising revenue only','Desktop-only browsing'],c:1,ex:'Twitter Lite targeted users on slow or unreliable mobile networks in emerging markets.'},
+ {id:'q12',q:'Compared to an Electron desktop app, what is a PWA\'s main resource advantage?',opts:['It requires more disk space','It bundles its own browser engine','It avoids bundling a full Chromium engine, keeping size much smaller','It cannot run offline'],c:2,ex:'Electron ships an entire browser engine per app; a PWA reuses the browser already on the device.'},
+ {id:'q13',q:'To update a live PWA for all users, a developer must:',opts:['Resubmit to an app store and wait for review','Just deploy the new files — the service worker fetches updates automatically','Email every user a new APK','Nothing, PWAs cannot be updated'],c:1,ex:'PWAs update the way websites do: deploy, and the service worker picks up the new version on next load.'},
+ {id:'q14',q:'Which tool audits a site\'s PWA installability and performance?',opts:['Lighthouse','Photoshop','Postman','Figma'],c:0,ex:'Chrome\'s Lighthouse tool scores installability, performance, and accessibility in one report.'},
+ {id:'q15',q:'What did Pinterest report after rebuilding its mobile site as a PWA?',opts:['A large increase in weekly active users on mobile web','No measurable change','A decrease in engagement','Slower load times'],c:0,ex:'Pinterest reported roughly a 103% rise in weekly active users on mobile web within a year of launch.'},
+];
+
+/* ---------- micro-checks (1 per section 01-08, may reuse bank items) ---------- */
+const MICRO_MAP={1:'q1',2:'q2',3:'q3',4:'q5',5:'q6',6:'q8',7:'q9',8:'q10'};
+Object.keys(MICRO_MAP).forEach(secNum=>{
+  const item=BANK.find(b=>b.id===MICRO_MAP[secNum]);
+  const holder=document.getElementById('mc-0'+secNum) || document.getElementById('mc-'+secNum);
+  if(!holder||!item) return;
+  const wrap=document.createElement('div'); wrap.className='micro-check';
+  wrap.innerHTML='<b>Quick check</b><div>'+item.q+'</div><div class="mc-opts" data-check-id="'+item.id+'"></div><div class="mc-feedback" aria-live="polite"></div>';
+  holder.appendChild(wrap);
+  const optsWrap=wrap.querySelector('.mc-opts'); const feedback=wrap.querySelector('.mc-feedback');
+  item.opts.forEach((o,i)=>{
+    const b=document.createElement('button'); b.className='opt'; b.textContent=o; b.dataset.tests_id=item.id;
+    b.addEventListener('click',()=>{
+      [...optsWrap.children].forEach(c=>c.disabled=true);
+      if(i===item.c){ b.classList.add('correct'); feedback.textContent='Correct — '+item.ex; }
+      else{ b.classList.add('incorrect'); optsWrap.children[item.c].classList.add('correct'); feedback.textContent='Not quite — '+item.ex; }
+    });
+    optsWrap.appendChild(b);
+  });
+});
+
+/* ---------- pre-test (first 3 questions, once, non-retakable) ---------- */
+const PRETEST=BANK.slice(0,3);
+if(!sGet('pretestDone', false)){
+  const holder=document.getElementById('pretest-holder');
+  const card=document.createElement('section'); card.setAttribute('aria-labelledby','pt-h');
+  card.innerHTML='<div class="section-label">Before You Start</div><h2 id="pt-h">Quick Pre-Test</h2><p>Three questions, just to see where you\'re starting from. This cannot be retaken.</p><div id="pretest-card"></div>';
+  holder.appendChild(card);
+  let idx=0, score=0;
+  function renderPT(){
+    const item=PRETEST[idx];
+    const c=document.getElementById('pretest-card');
+    c.innerHTML='<div class="micro-check"><b>Question '+(idx+1)+' of 3</b><div>'+item.q+'</div><div class="mc-opts"></div></div>';
+    const optsWrap=c.querySelector('.mc-opts');
+    item.opts.forEach((o,i)=>{
+      const b=document.createElement('button'); b.className='opt'; b.textContent=o;
+      b.addEventListener('click',()=>{
+        if(i===item.c) score++;
+        idx++;
+        if(idx<PRETEST.length) renderPT();
+        else{ sSet('pretestDone',true); sSet('pretestScore',score); c.parentElement.innerHTML='<p><i>Pre-test complete — your growth will be compared to it after the final quiz.</i></p>'; }
+      });
+      optsWrap.appendChild(b);
+    });
+  }
+  renderPT();
+}
+
+/* ---------- main 15-question quiz ---------- */
+let qIdx=0, answered=new Array(BANK.length).fill(null);
+const quizCard=document.getElementById('quiz-card');
+function renderQuiz(){
+  const item=BANK[qIdx];
+  const scoreSoFar=answered.filter((a,i)=>a===BANK[i].c).length;
+  quizCard.innerHTML='<div id="quiz-progress"><span>Question '+(qIdx+1)+' / '+BANK.length+'</span><span>Score: '+scoreSoFar+'</span></div>'+
+    '<div>'+item.q+'</div><div class="quiz-opts" data-tests-id="'+item.id+'"></div>'+
+    '<div class="quiz-nav"><button class="btn secondary" id="q-prev">Previous</button><button class="btn" id="q-next">Next</button></div>';
+  const optsWrap=quizCard.querySelector('.quiz-opts');
+  item.opts.forEach((o,i)=>{
+    const b=document.createElement('button'); b.className='opt'+(answered[qIdx]===i?' selected':'');
+    b.textContent=o;
+    b.addEventListener('click',()=>{ answered[qIdx]=i; sSet('quizAnswers',answered); renderQuiz(); });
+    optsWrap.appendChild(b);
+  });
+  document.getElementById('q-prev').disabled = qIdx===0;
+  document.getElementById('q-prev').addEventListener('click',()=>{ qIdx--; renderQuiz(); });
+  const nextBtn=document.getElementById('q-next');
+  nextBtn.textContent = qIdx===BANK.length-1 ? 'Finish' : 'Next';
+  nextBtn.addEventListener('click',()=>{
+    if(qIdx<BANK.length-1){ qIdx++; renderQuiz(); }
+    else{ showQuizComplete(); }
+  });
+}
+function showQuizComplete(){
+  const score=answered.filter((a,i)=>a===BANK[i].c).length;
+  sSet('quizFinished',true); sSet('finalScore',score);
+  const pretestScore=sGet('pretestScore',null);
+  let growthLine='';
+  if(pretestScore!==null){
+    const pretestPct=Math.round(pretestScore/3*100);
+    const finalPct=Math.round(score/BANK.length*100);
+    growthLine='<p>Pre-test: '+pretestPct+'% → Final quiz: '+finalPct+'%.</p>';
+  }
+  const missed=BANK.map((b,i)=>({b,i})).filter(x=>answered[x.i]!==x.b.c);
+  const missedHtml=missed.map(x=>'<div class="micro-check"><b>'+x.b.q+'</b><div>Your answer: '+(answered[x.i]!==null?x.b.opts[answered[x.i]]:'(skipped)')+'</div><div>Correct answer: '+x.b.opts[x.b.c]+'</div><div class="mc-feedback">'+x.b.ex+'</div></div>').join('');
+  quizCard.innerHTML='<h3>Quiz Complete — '+score+' / '+BANK.length+'</h3>'+growthLine+(missed.length?'<p>Review:</p>'+missedHtml:'<p>Perfect score — nice work.</p>');
+  document.getElementById('export-results').disabled=false;
+}
+if(sGet('quizFinished',false)){
+  answered=sGet('quizAnswers',answered);
+  showQuizComplete();
+}else{
+  answered=sGet('quizAnswers',answered);
+  renderQuiz();
+}
+document.getElementById('retake-quiz').addEventListener('click',()=>{
+  qIdx=0; answered=new Array(BANK.length).fill(null);
+  sSet('quizAnswers',answered); sSet('quizFinished',false);
+  document.getElementById('export-results').disabled=true;
+  renderQuiz();
+});
+document.getElementById('reset-progress').addEventListener('click',()=>{
+  ['quizAnswers','quizFinished','finalScore','pretestDone','pretestScore','hearted'].forEach(sDel);
+  showToast('Progress reset — reload the page to start fresh.');
+});
+
+/* ---------- DOCX export ---------- */
+async function buildBlankExam(){
+  const D=window.docx;
+  const qParas=BANK.map((b,i)=>[
+    new D.Paragraph({text:(i+1)+'. '+b.q, spacing:{before:200}}),
+    ...b.opts.map((o,j)=>new D.Paragraph({text:String.fromCharCode(97+j)+') '+o}))
+  ]).flat();
+  const keyParas=BANK.map((b,i)=>new D.Paragraph({text:(i+1)+'. Correct: '+String.fromCharCode(97+b.c)+') '+b.opts[b.c]+' — Why: '+b.ex}));
+  const doc=new D.Document({sections:[
+    {children:[new D.Paragraph({text:'Progressive Web Apps — Exam',heading:D.HeadingLevel.HEADING1}), ...qParas]},
+    {children:[new D.Paragraph({text:'Answer Key — Guide-Giver Copy Only',heading:D.HeadingLevel.HEADING1,pageBreakBefore:true}), ...keyParas]}
+  ]});
+  const blob=await D.Packer.toBlob(doc);
+  saveAs(blob,'progressive-web-app-exam.docx');
+}
+async function buildResultsExam(){
+  const D=window.docx;
+  const score=answered.filter((a,i)=>a===BANK[i].c).length;
+  const rows=BANK.map((b,i)=>{
+    const wrong = answered[i]!==b.c;
+    const base=[new D.Paragraph({text:(i+1)+'. '+b.q}),
+      new D.Paragraph({text:'Your answer: '+(answered[i]!==null?b.opts[answered[i]]:'(skipped)')}),
+      new D.Paragraph({text:'Correct answer: '+b.opts[b.c]})];
+    if(wrong) base.push(new D.Paragraph({text:'Why: '+b.ex}));
+    return base;
+  }).flat();
+  const doc=new D.Document({sections:[{children:[
+    new D.Paragraph({text:'Progressive Web Apps — My Results',heading:D.HeadingLevel.HEADING1}),
+    new D.Paragraph({text:'Score: '+score+' / '+BANK.length}),
+    ...rows]}]});
+  const blob=await D.Packer.toBlob(doc);
+  saveAs(blob,'progressive-web-app-results.docx');
+}
+document.getElementById('export-blank').addEventListener('click',buildBlankExam);
+document.getElementById('export-results').addEventListener('click',buildResultsExam);
+
+}catch(err){ console.error('Guide script error:', err); }
+</script>
+</body>
+</html>
